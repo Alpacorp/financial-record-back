@@ -1,6 +1,10 @@
 const { Schema, model } = require("mongoose");
 
 const BillSchema = Schema({
+  uid: {
+    type: String,
+    required: false,
+  },
   name: {
     type: String,
     required: [true, "The name is required"],

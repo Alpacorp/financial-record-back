@@ -21,7 +21,7 @@ router.use(validateJWT);
 
 router.post(
   "/new",
-  [check("name", "name category is required").not().isEmpty(), validateInputs],
+  [check("name", "name category is required").notEmpty(), validateInputs],
   createCategory
 );
 router.get("/", getCategories);

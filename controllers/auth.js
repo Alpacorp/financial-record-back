@@ -16,8 +16,8 @@ const createUser = async (req, res = response) => {
     }
     user = new User(req.body);
     // Encrypt password
-    const salt = bcrypt.genSaltSync();
-    user.password = bcrypt.hashSync(password, salt);
+    const salt = await bcrypt.genSalt();
+    user.password = await bcrypt.hash(password, salt);
     await user.save();
     // Generate JWT
     const token = await generateJWT(user.id, user.name);
@@ -47,7 +47,7 @@ const loginUser = async (req, res = response) => {
       });
     }
     // Confirm passwords
-    const validPassword = bcrypt.compareSync(password, user.password);
+    const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(400).json({
         ok: false,
@@ -124,8 +124,8 @@ const updateUser = async (req, res = response) => {
       const { password, ...fields } = req.body;
 
       if (userDB.password !== password) {
-        const salt = bcrypt.genSaltSync();
-        fields.password = bcrypt.hashSync(password, salt);
+        const salt = await bcrypt.genSalt();
+        fields.password = await bcrypt.hash(password, salt);
       }
 
       const newUser = {

@@ -16,18 +16,18 @@ const { validateInputs } = require("../middlewares/validateInputs");
 const { validateJWT } = require("../middlewares/validateJWT");
 const router = Router();
 
-// router.use(validateJWT);
+router.use(validateJWT);
 
 router.post(
   "/new",
   [
-    check("name", "name bill is required").not().isEmpty(),
-    check("category", "category bill is required").not().isEmpty(),
-    check("detail", "detail bill is required").not().isEmpty(),
-    check("amount", "amount bill is required").not().isEmpty().isNumeric(),
-    check("date", "date bill is required").not().isEmpty(),
-    check("type", "type bill is required").not().isEmpty(),
-    check("paymethod", "paymethod bill is required").not().isEmpty(),
+    check("name", "name bill is required").notEmpty(),
+    check("category", "category bill is required").notEmpty(),
+    check("detail", "detail bill is required").notEmpty(),
+    check("amount", "amount bill is required").notEmpty().isNumeric(),
+    check("date", "date bill is required").notEmpty(),
+    check("type", "type bill is required").notEmpty(),
+    check("paymethod", "paymethod bill is required").notEmpty(),
     validateInputs,
   ],
   createBill

@@ -1,6 +1,10 @@
 const { Schema, model } = require("mongoose");
 
 const IncomeSchema = Schema({
+  uid: {
+    type: String,
+    required: false,
+  },
   concept: {
     type: String,
     required: [true, "The concept is required"],
@@ -16,6 +20,10 @@ const IncomeSchema = Schema({
   date: {
     type: String,
     required: [true, "The date is required"],
+  },
+  category: {
+    type: String,
+    required: false,
   },
   channel: {
     type: String,

@@ -21,12 +21,12 @@ router.use(validateJWT);
 router.post(
   "/new",
   [
-    check("concept", "concept income is required").not().isEmpty(),
-    check("detail", "detail income is required").not().isEmpty(),
-    check("amount", "amount income is required").not().isEmpty(),
-    check("date", "date income is required").not().isEmpty(),
-    check("channel", "channel income is required").not().isEmpty(),
-    check("paymethod", "paymethod income is required").not().isEmpty(),
+    check("concept", "concept income is required").notEmpty(),
+    check("detail", "detail income is required").notEmpty(),
+    check("amount", "amount income is required").notEmpty(),
+    check("date", "date income is required").notEmpty(),
+    check("channel", "channel income is required").notEmpty(),
+    check("paymethod", "paymethod income is required").notEmpty(),
     validateInputs,
   ],
   createIncome
