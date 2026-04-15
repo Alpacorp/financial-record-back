@@ -15,6 +15,10 @@ const CategorySchema = Schema({
     default: "gasto",
     required: false,
   },
+  isInvestment: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = model("Category", CategorySchema, "categories");
