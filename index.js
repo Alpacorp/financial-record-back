@@ -24,6 +24,7 @@ app.use("/api/v1/incomes", require("./routes/incomes"));
 app.use("/api/v1/paychannels", require("./routes/payChannels"));
 app.use("/api/v1/categories", require("./routes/categories"));
 app.use("/api/v1/budgets",    require("./routes/budgets"));
+app.use("/api/v1/ai",         require("./routes/ai"));
 
 // Listen
 app.listen(process.env.PORT, () => {
