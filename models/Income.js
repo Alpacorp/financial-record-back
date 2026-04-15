@@ -17,6 +17,10 @@ const IncomeSchema = Schema({
     type: String,
     required: [true, "The date is required"],
   },
+  category: {
+    type: String,
+    required: false,
+  },
   channel: {
     type: String,
     required: [true, "The channel is required"],
