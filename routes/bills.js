@@ -16,7 +16,7 @@ const { validateInputs } = require("../middlewares/validateInputs");
 const { validateJWT } = require("../middlewares/validateJWT");
 const router = Router();
 
-// router.use(validateJWT);
+router.use(validateJWT);
 
 router.post(
   "/new",
