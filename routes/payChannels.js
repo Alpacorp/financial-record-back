@@ -22,7 +22,7 @@ router.use(validateJWT);
 router.post(
   "/new",
   [
-    check("name", "name paychannel is required").not().isEmpty(),
+    check("name", "name paychannel is required").notEmpty(),
     validateInputs,
   ],
   createPayChannel
