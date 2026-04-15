@@ -12,6 +12,9 @@ const createIncome = async (req, res = response) => {
 };
 
 const getIncomes = async (req, res = response) => {
+  if (!req.uid) {
+    return res.status(401).json({ ok: false, msg: "Unauthorized" });
+  }
   const incomes = await Income.find({ uid: req.uid });
   res.json({ ok: true, quanties: incomes.length, incomes });
 };

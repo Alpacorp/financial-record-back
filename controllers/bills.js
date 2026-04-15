@@ -17,6 +17,9 @@ const createBill = async (req, res = response) => {
 };
 
 const getBills = async (req, res = response) => {
+  if (!req.uid) {
+    return res.status(401).json({ ok: false, msg: "Unauthorized" });
+  }
   const bills = await Bill.find({ uid: req.uid }).sort({ date: -1 });
   res.json({ ok: true, bills });
 };
