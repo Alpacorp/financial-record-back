@@ -15,7 +15,7 @@ const getIncomes = async (req, res = response) => {
   if (!req.uid) {
     return res.status(401).json({ ok: false, msg: "Unauthorized" });
   }
-  const incomes = await Income.find({ uid: req.uid });
+  const incomes = await Income.find({ uid: req.uid, deletedAt: null });
   res.json({ ok: true, quanties: incomes.length, incomes });
 };
 
@@ -49,11 +49,11 @@ const updateIncome = async (req, res = response) => {
 const deleteIncome = async (req, res = response) => {
   const { id } = req.params;
   try {
-    const income = await Income.findOne({ _id: id, uid: req.uid });
+    const income = await Income.findOne({ _id: id, uid: req.uid, deletedAt: null });
     if (!income) {
       return res.status(404).json({ ok: false, msg: "Income not found" });
     }
-    await Income.findByIdAndDelete(id);
+    await Income.findByIdAndUpdate(id, { deletedAt: new Date() });
     res.json({ ok: true, msg: "Income deleted" });
   } catch (error) {
     res.status(500).json({ ok: false, msg: "Please contact the administrator" });
