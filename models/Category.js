@@ -19,6 +19,10 @@ const CategorySchema = Schema({
     type: Boolean,
     default: false,
   },
+  emoji: {
+    type: String,
+    default: "",
+  },
 });
 
 module.exports = model("Category", CategorySchema, "categories");
