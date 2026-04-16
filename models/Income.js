@@ -33,6 +33,10 @@ const IncomeSchema = Schema({
     type: String,
     required: [true, "The paymethod is required"],
   },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 module.exports = model("Income", IncomeSchema, "incomes");

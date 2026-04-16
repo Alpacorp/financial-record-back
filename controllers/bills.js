@@ -20,7 +20,7 @@ const getBills = async (req, res = response) => {
   if (!req.uid) {
     return res.status(401).json({ ok: false, msg: "Unauthorized" });
   }
-  const bills = await Bill.find({ uid: req.uid }).sort({ date: -1 });
+  const bills = await Bill.find({ uid: req.uid, deletedAt: null }).sort({ date: -1 });
   res.json({ ok: true, bills });
 };
 
@@ -54,11 +54,11 @@ const updateBill = async (req, res = response) => {
 const deleteBill = async (req, res = response) => {
   const { id } = req.params;
   try {
-    const bill = await Bill.findOne({ _id: id, uid: req.uid });
+    const bill = await Bill.findOne({ _id: id, uid: req.uid, deletedAt: null });
     if (!bill) {
       return res.status(404).json({ ok: false, msg: "Bill not found" });
     }
-    await Bill.findByIdAndDelete(id);
+    await Bill.findByIdAndUpdate(id, { deletedAt: new Date() });
     res.json({ ok: true, msg: "Bill deleted" });
   } catch (error) {
     res.status(500).json({ ok: false, msg: "Please contact the administrator" });

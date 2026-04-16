@@ -37,6 +37,10 @@ const BillSchema = Schema({
     type: Number,
     required: false,
   },
+  deletedAt: {
+    type: Date,
+    default: null,
+  },
 });
 
 module.exports = model("Bill", BillSchema, "bills");
