@@ -6,6 +6,7 @@ const Bill           = require("../models/Bill");
 const Income         = require("../models/Income");
 const Category       = require("../models/Category");
 const PayChannel     = require("../models/PayChannel");
+const { checkBudgetAlert } = require("../services/whatsappNotifications");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -344,6 +345,12 @@ const webhookHandler = async (req, res) => {
     const bill = new Bill({ uid, ...p });
     await bill.save();
     await PendingExpense.deleteOne({ userId: user._id });
+
+    // Fire-and-forget: no esperamos para no retrasar la respuesta TwiML
+    checkBudgetAlert(uid, phone, p.category, p.amount).catch((e) =>
+      console.error("Budget alert error:", e.message)
+    );
+
     const typeLabel = p.type === "Crédito" ? `Crédito · ${p.dues} cuotas` : "Contado";
     return twimlReply(res,
       `✅ Gasto registrado correctamente\n\n` +
