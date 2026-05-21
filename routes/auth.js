@@ -14,6 +14,8 @@ const {
   renewToken,
   deleteUser,
   updateUser,
+  getMe,
+  updateWhatsapp,
 } = require("../controllers/auth");
 const { validateInputs } = require("../middlewares/validateInputs");
 const { validateJWT } = require("../middlewares/validateJWT");
@@ -49,5 +51,7 @@ router.put("/users/:id", updateUser);
 router.delete("/users/:id", deleteUser);
 
 router.get("/renew", [validateInputs], renewToken);
+router.get("/me", getMe);
+router.put("/whatsapp", updateWhatsapp);
 
 module.exports = router;
