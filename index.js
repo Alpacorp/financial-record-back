@@ -20,6 +20,9 @@ app.use(express.json());
 // Twilio sends URL-encoded bodies
 app.use(express.urlencoded({ extended: false }));
 
+// WhatsApp notification cron jobs
+require("./services/whatsappNotifications").registerCrons();
+
 // Routes
 app.use("/api/v1/bills",     require("./routes/bills"));
 app.use("/api/v1/auth",      require("./routes/auth"));
