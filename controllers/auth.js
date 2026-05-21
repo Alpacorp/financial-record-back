@@ -181,14 +181,32 @@ const deleteUser = async (req, res = response) => {
 
 const renewToken = async (req, res = response) => {
   const { uid, name } = req;
-
-  // Generate JWT
   const token = await generateJWT(uid, name);
+  res.json({ ok: true, token });
+};
 
-  res.json({
-    ok: true,
-    token,
-  });
+const getMe = async (req, res = response) => {
+  try {
+    const user = await User.findById(req.uid).select("-password");
+    if (!user) return res.status(404).json({ ok: false, msg: "User not found" });
+    res.json({ ok: true, user });
+  } catch (error) {
+    res.status(500).json({ ok: false, msg: "Please contact the administrator" });
+  }
+};
+
+const updateWhatsapp = async (req, res = response) => {
+  const { whatsappPhone } = req.body;
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.uid,
+      { whatsappPhone: whatsappPhone || null },
+      { new: true }
+    ).select("-password");
+    res.json({ ok: true, user });
+  } catch (error) {
+    res.status(500).json({ ok: false, msg: "Please contact the administrator" });
+  }
 };
 
 module.exports = {
@@ -199,4 +217,6 @@ module.exports = {
   deleteUser,
   renewToken,
   loginUser,
+  getMe,
+  updateWhatsapp,
 };

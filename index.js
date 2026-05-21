@@ -17,14 +17,18 @@ app.use(express.static("public"));
 // Read and parse JSON
 app.use(express.json());
 
+// Twilio sends URL-encoded bodies
+app.use(express.urlencoded({ extended: false }));
+
 // Routes
-app.use("/api/v1/bills", require("./routes/bills"));
-app.use("/api/v1/auth", require("./routes/auth"));
-app.use("/api/v1/incomes", require("./routes/incomes"));
+app.use("/api/v1/bills",     require("./routes/bills"));
+app.use("/api/v1/auth",      require("./routes/auth"));
+app.use("/api/v1/incomes",   require("./routes/incomes"));
 app.use("/api/v1/paychannels", require("./routes/payChannels"));
 app.use("/api/v1/categories", require("./routes/categories"));
-app.use("/api/v1/budgets",    require("./routes/budgets"));
-app.use("/api/v1/ai",         require("./routes/ai"));
+app.use("/api/v1/budgets",   require("./routes/budgets"));
+app.use("/api/v1/ai",        require("./routes/ai"));
+app.use("/api/v1/whatsapp",  require("./routes/whatsapp"));
 
 // Listen
 app.listen(process.env.PORT, () => {

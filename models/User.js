@@ -14,6 +14,11 @@ const UserSchema = Schema({
     type: String,
     required: [true, "The password is required"],
   },
+  whatsappPhone: {
+    type: String,
+    default: null,
+    sparse: true,
+  },
 });
 
 module.exports = model("User", UserSchema, "users");
