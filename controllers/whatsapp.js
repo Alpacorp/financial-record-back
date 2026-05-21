@@ -128,13 +128,15 @@ const executeQuery = async (uid, queryType, params) => {
     }
 
     case "last_payment": {
-      const term = params.search_term ?? "";
+      const term    = params.search_term ?? "";
+      const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex   = `\\b${escaped}`;
       const bill = await Bill.findOne({
         uid, deletedAt: null,
         $or: [
-          { name:     { $regex: term, $options: "i" } },
-          { detail:   { $regex: term, $options: "i" } },
-          { category: { $regex: term, $options: "i" } },
+          { name:     { $regex: regex, $options: "i" } },
+          { detail:   { $regex: regex, $options: "i" } },
+          { category: { $regex: regex, $options: "i" } },
         ],
       }).sort({ date: -1, createdAt: -1 });
 
@@ -280,7 +282,7 @@ Reglas para ingresos nuevos:
 - Usa categorías de ingresos exactamente como aparecen en la lista
 
 Reglas para consultas:
-- last_payment: extrae el término clave que el usuario busca (ej: "última vez que pagué el servicio de luz" → "luz")
+- last_payment: extrae el término MÁS ESPECÍFICO posible para evitar falsos positivos. Preferir frases sobre palabras sueltas cortas (ej: "recibo de gas propio" → "gas propio"; "servicio de luz" → "luz"; "internet claro" → "claro"; "arriendo" → "arriendo")
 - Si no especifica mes en resumen/categoría/balance, usa el mes actual: ${month}
 - limit en recent/recent_incomes: usa el número que pida el usuario, si no especifica usa 5
 - Si el usuario pregunta por "balance" o "cómo voy" usa balance_summary`;
