@@ -7,6 +7,11 @@ const PendingExpenseSchema = Schema({
     required: true,
     unique: true,
   },
+  recordType: {
+    type: String,
+    enum: ["expense", "income"],
+    default: "expense",
+  },
   parsed: {
     type: Object,
     required: true,
@@ -14,7 +19,7 @@ const PendingExpenseSchema = Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 300, // MongoDB elimina el documento automáticamente a los 5 minutos
+    expires: 300,
   },
 });
 
