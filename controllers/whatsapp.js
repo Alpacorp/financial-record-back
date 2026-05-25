@@ -333,7 +333,13 @@ const webhookHandler = async (req, res) => {
     const p = pending.parsed;
 
     if (pending.recordType === "income") {
-      const income = new Income({ uid, ...p });
+      const income = new Income({
+        uid,
+        ...p,
+        detail:    p.detail    || p.concept || "",
+        channel:   p.channel   || p.paymethod || "",
+        paymethod: p.paymethod || p.channel  || "",
+      });
       await income.save();
       await PendingExpense.deleteOne({ userId: user._id });
       return twimlReply(res,
@@ -342,7 +348,7 @@ const webhookHandler = async (req, res) => {
       );
     }
 
-    const bill = new Bill({ uid, ...p });
+    const bill = new Bill({ uid, ...p, detail: p.detail || p.name || "" });
     await bill.save();
     await PendingExpense.deleteOne({ userId: user._id });
 
