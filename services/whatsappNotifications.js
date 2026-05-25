@@ -5,8 +5,14 @@ const Bill    = require("../models/Bill");
 const Income  = require("../models/Income");
 const Budget  = require("../models/Budget");
 
-const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const FROM   = `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
+let _twilioClient = null;
+const getClient = () => {
+  if (!_twilioClient) {
+    _twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  }
+  return _twilioClient;
+};
+const FROM = () => `whatsapp:${process.env.TWILIO_WHATSAPP_NUMBER}`;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,8 +50,8 @@ const weekRange = () => {
 };
 
 const sendWA = async (phone, message) => {
-  await client.messages.create({
-    from: FROM,
+  await getClient().messages.create({
+    from: FROM(),
     to:   `whatsapp:${phone}`,
     body: message,
   });
@@ -58,7 +64,7 @@ const getLinkedUsers = () =>
 
 // ─── Budget alert (called from webhook after expense confirmation) ─────────────
 
-const checkBudgetAlert = async (uid, phone, category, amount) => {
+const checkBudgetAlert = async (uid, phone, category) => {
   const budget = await Budget.findOne({ uid, category });
   if (!budget || budget.amount <= 0) return;
 
@@ -165,6 +171,11 @@ const sendMonthlyClose = async () => {
 // ─── Register cron jobs ───────────────────────────────────────────────────────
 
 const registerCrons = () => {
+  if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) {
+    console.warn("[cron] Twilio credentials missing — WhatsApp notifications disabled");
+    return;
+  }
+
   // Every Monday at 8:00 AM (Colombia = UTC-5, so 13:00 UTC)
   cron.schedule("0 13 * * 1", () => {
     console.log("[cron] Running weekly summary");
