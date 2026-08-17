@@ -2,12 +2,15 @@ const { response } = require("express");
 const Bill = require("../models/Bill");
 
 const createBill = async (req, res = response) => {
-  const { name, category, detail, amount, date, type, paymethod, dues } = req.body;
+  const {
+    name, category, detail, amount, date, type, paymethod, dues, tags,
+  } = req.body;
 
   try {
     const newBill = new Bill({
       uid: req.uid,
       name, category, detail, amount, date, type, paymethod, dues,
+      tags: Array.isArray(tags) ? tags.filter((t) => typeof t === "string" && t.trim()) : [],
     });
     await newBill.save();
     res.status(201).json({ ok: true, msg: "Bill created", bill: newBill });

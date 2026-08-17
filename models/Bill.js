@@ -11,6 +11,8 @@ const BillSchema = Schema(
     type: { type: String, required: [true, "The type is required"] },
     paymethod: { type: String, required: [true, "The paymethod is required"] },
     dues: { type: Number, required: false },
+    // Marcas del gasto, guardadas por nombre (ver models/Tag.js)
+    tags: { type: [String], default: [] },
     deletedAt: { type: Date, default: null },
   },
   { timestamps: true }

@@ -30,6 +30,8 @@ app.use("/api/v1/incomes",   require("./routes/incomes"));
 app.use("/api/v1/paychannels", require("./routes/payChannels"));
 app.use("/api/v1/categories", require("./routes/categories"));
 app.use("/api/v1/budgets",   require("./routes/budgets"));
+app.use("/api/v1/card-payments", require("./routes/cardPayments"));
+app.use("/api/v1/tags",      require("./routes/tags"));
 app.use("/api/v1/ai",        require("./routes/ai"));
 app.use("/api/v1/whatsapp",  require("./routes/whatsapp"));
 
