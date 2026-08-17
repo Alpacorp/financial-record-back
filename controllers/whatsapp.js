@@ -6,6 +6,7 @@ const Bill           = require("../models/Bill");
 const Income         = require("../models/Income");
 const Category       = require("../models/Category");
 const PayChannel     = require("../models/PayChannel");
+const Tag            = require("../models/Tag");
 const { checkBudgetAlert } = require("../services/whatsappNotifications");
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -27,6 +28,12 @@ const formatCOP = (amount) =>
     style: "currency", currency: "COP",
     minimumFractionDigits: 0, maximumFractionDigits: 0,
   }).format(amount ?? 0);
+
+// Línea extra con las marcas del gasto; vacía si no lleva ninguna
+const tagsLine = (parsed) => {
+  const marks = Array.isArray(parsed.tags) ? parsed.tags.filter(Boolean) : [];
+  return marks.length ? `\n🏷️ ${marks.join(" · ")}` : "";
+};
 
 const monthLabel = (ym) => {
   const [y, m] = ym.split("-").map(Number);
@@ -175,6 +182,58 @@ const executeQuery = async (uid, queryType, params) => {
       );
     }
 
+    case "tag_summary": {
+      const month = params.month || currentMonth();
+
+      // La marca llega como texto libre; se resuelve contra el catálogo del usuario
+      const requested = (params.tag ?? "").trim();
+      const userTags  = await Tag.find({ uid });
+      const tag = userTags.find((t) => t.name.toLowerCase() === requested.toLowerCase())
+        ?? userTags.find((t) => t.name.toLowerCase().includes(requested.toLowerCase()));
+
+      if (!tag) {
+        const available = userTags.map((t) => `${t.emoji || "🏷️"} ${t.name}`).join(", ");
+        return available
+          ? `🔍 No tengo una marca llamada *"${requested}"*.\n\nTus marcas son: ${available}`
+          : `🔍 Aún no tienes marcas configuradas. Créalas en Configuración → Marcas.`;
+      }
+
+      const periodBills = await Bill.find({ uid, deletedAt: null, date: { $regex: `^${month}` } });
+      const tagged = periodBills.filter((b) => (b.tags ?? []).includes(tag.name));
+
+      if (!tagged.length) {
+        return `📭 No hay gastos con la marca *${tag.name}* en ${monthLabel(month)}.`;
+      }
+
+      const total       = tagged.reduce((s, b) => s + (b.amount ?? 0), 0);
+      const periodTotal = periodBills.reduce((s, b) => s + (b.amount ?? 0), 0);
+      const share       = periodTotal > 0 ? (total / periodTotal) * 100 : 0;
+
+      const byCat = {};
+      for (const b of tagged) byCat[b.category] = (byCat[b.category] ?? 0) + (b.amount ?? 0);
+      const lines = Object.entries(byCat)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([cat, amt]) => `  • ${cat}: ${formatCOP(amt)}`)
+        .join("\n");
+
+      return (
+        `${tag.emoji || "🏷️"} *${tag.name} — ${monthLabel(month)}*\n\n` +
+        `💰 Total: ${formatCOP(total)} (${share.toFixed(0)}% del gasto del mes)\n` +
+        `📋 ${tagged.length} de ${periodBills.length} registro${periodBills.length !== 1 ? "s" : ""}\n\n` +
+        `*Por categoría:*\n${lines}`
+      );
+    }
+
+    case "tag_list": {
+      const userTags = await Tag.find({ uid }).sort({ name: 1 });
+      if (!userTags.length) {
+        return "🏷️ Aún no tienes marcas configuradas.\n\nCréalas en la app, en Configuración → Marcas.";
+      }
+      const lines = userTags.map((t) => `  • ${t.emoji || "🏷️"} ${t.name}`).join("\n");
+      return `🏷️ *Tus marcas*\n\n${lines}\n\nPregúntame por cualquiera, ej: _"cuánto llevo en ${userTags[0].name}"_`;
+    }
+
     case "search": {
       const term = params.search_term ?? "";
       const bills = await Bill.find({
@@ -217,9 +276,13 @@ const HELP_MSG =
   `_"¿cuánto ingresé este mes?"_\n` +
   `_"últimos ingresos"_\n\n` +
   `*Balance:*\n` +
-  `_"¿cómo va mi balance este mes?"_`;
+  `_"¿cómo va mi balance este mes?"_\n\n` +
+  `*Marcas:*\n` +
+  `_"¿qué marcas tengo?"_\n` +
+  `_"¿cuánto llevo en trabajo este mes?"_\n` +
+  `_"gastos con factura electrónica"_`;
 
-const classifyMessage = async (body, expenseCategoryNames, incomeCategoryNames, payChannelNames) => {
+const classifyMessage = async (body, expenseCategoryNames, incomeCategoryNames, payChannelNames, tags) => {
   const today = currentDate();
   const month = currentMonth();
 
@@ -230,7 +293,7 @@ Clasifica el mensaje y devuelve ÚNICAMENTE un objeto JSON válido, sin texto ad
 Posibles formatos de respuesta:
 
 GASTO NUEVO (el usuario describe algo que gastó, pagó, compró):
-{"intent":"new_expense","parsed":{"name":"...","category":"...","detail":"...","amount":0,"date":"YYYY-MM-DD","type":"Contado","paymethod":"...","dues":null}}
+{"intent":"new_expense","parsed":{"name":"...","category":"...","detail":"...","amount":0,"date":"YYYY-MM-DD","type":"Contado","paymethod":"...","dues":null,"tags":[]}}
 
 INGRESO NUEVO (el usuario describe dinero que recibió, le pagaron, le transfirieron):
 {"intent":"new_income","parsed":{"concept":"...","detail":"...","amount":0,"date":"YYYY-MM-DD","category":"...","channel":"...","paymethod":"..."}}
@@ -259,6 +322,12 @@ TOTAL GASTOS POR CATEGORÍA:
 BUSCAR GASTOS POR NOMBRE:
 {"intent":"query","query_type":"search","params":{"search_term":"netflix"}}
 
+TOTAL POR MARCA (ej: "cuánto llevo en trabajo", "gastos de los niños este mes", "cuánto tengo facturado"):
+{"intent":"query","query_type":"tag_summary","params":{"tag":"Trabajo","month":"YYYY-MM"}}
+
+LISTAR LAS MARCAS (ej: "qué marcas tengo", "mis etiquetas"):
+{"intent":"query","query_type":"tag_list","params":{}}
+
 AYUDA:
 {"intent":"help"}
 
@@ -268,12 +337,20 @@ Categorías de gastos disponibles: ${expenseCategoryNames.length > 0 ? expenseCa
 Categorías de ingresos disponibles: ${incomeCategoryNames.length > 0 ? incomeCategoryNames.join(", ") : "Salario, Freelance, Inversión, Negocio, Otros"}
 Métodos de pago disponibles: ${payChannelNames.length > 0 ? payChannelNames.join(", ") : "Efectivo, Débito, Nequi, Transferencia"}
 
+Marcas disponibles (aplica solo las que el texto justifique claramente):
+${tags.length > 0
+  ? tags.map((t) => `- "${t.name}"${t.description ? `: ${t.description}` : ""}`).join("\n")
+  : "(el usuario no tiene marcas configuradas)"}
+
 Reglas para gastos nuevos:
 - amount: número entero en COP ("50 mil"=50000, "2 millones"=2000000, "$150.000"=150000)
 - date: formato YYYY-MM-DD ("ayer"=día anterior, "hoy"=fecha actual)
 - type: "Contado" o "Crédito"
 - Usa categorías de gastos exactamente como aparecen en la lista
 - dues: número de cuotas si es Crédito, null si es Contado
+- tags: array con los nombres de las marcas que apliquen, [] si ninguna. Nunca null
+- Usa los nombres de marca exactamente como aparecen en la lista y no inventes marcas nuevas
+- Ante la duda, no apliques una marca: es mejor dejarla sin marcar que marcarla mal
 
 Reglas para ingresos nuevos:
 - concept: nombre o concepto del ingreso (ej: "Salario", "Pago freelance", "Arriendo")
@@ -348,7 +425,11 @@ const webhookHandler = async (req, res) => {
       );
     }
 
-    const bill = new Bill({ uid, ...p, detail: p.detail || p.name || "" });
+    // La IA puede inventar marcas: solo se guardan las que existen en el catálogo
+    const userTagNames = new Set((await Tag.find({ uid })).map((t) => t.name));
+    const safeTags = (Array.isArray(p.tags) ? p.tags : []).filter((t) => userTagNames.has(t));
+
+    const bill = new Bill({ uid, ...p, tags: safeTags, detail: p.detail || p.name || "" });
     await bill.save();
     await PendingExpense.deleteOne({ userId: user._id });
 
@@ -360,7 +441,8 @@ const webhookHandler = async (req, res) => {
     const typeLabel = p.type === "Crédito" ? `Crédito · ${p.dues} cuotas` : "Contado";
     return twimlReply(res,
       `✅ Gasto registrado correctamente\n\n` +
-      `📋 ${p.name}\n💰 ${formatCOP(p.amount)}\n🏷️ ${p.category}\n📅 ${p.date}\n💳 ${p.paymethod} · ${typeLabel}`
+      `📋 ${p.name}\n💰 ${formatCOP(p.amount)}\n🏷️ ${p.category}\n📅 ${p.date}\n💳 ${p.paymethod} · ${typeLabel}` +
+      tagsLine(p)
     );
   }
 
@@ -375,16 +457,17 @@ const webhookHandler = async (req, res) => {
 
   // ── Classify with Claude ──────────────────────────────────────────────────────
   try {
-    const [expenseCategories, incomeCategories, payChannels] = await Promise.all([
+    const [expenseCategories, incomeCategories, payChannels, tags] = await Promise.all([
       Category.find({ uid, type: "gasto" }),
       Category.find({ uid, type: "ingreso" }),
       PayChannel.find({ uid }),
+      Tag.find({ uid }).sort({ name: 1 }),
     ]);
     const expenseCategoryNames = expenseCategories.map((c) => c.name);
     const incomeCategoryNames  = incomeCategories.map((c) => c.name);
     const payChannelNames      = payChannels.map((p) => p.name);
 
-    const classified = await classifyMessage(body, expenseCategoryNames, incomeCategoryNames, payChannelNames);
+    const classified = await classifyMessage(body, expenseCategoryNames, incomeCategoryNames, payChannelNames, tags);
 
     // ── Help ────────────────────────────────────────────────────────────────────
     if (classified.intent === "help") {
@@ -422,7 +505,8 @@ const webhookHandler = async (req, res) => {
         `💰 ${formatCOP(parsed.amount)}\n` +
         `🏷️ ${parsed.category ?? "Sin categoría"}\n` +
         `📅 ${parsed.date ?? currentDate()}\n` +
-        `💳 ${parsed.paymethod ?? "Sin método"} · ${typeLabel}\n\n` +
+        `💳 ${parsed.paymethod ?? "Sin método"} · ${typeLabel}` +
+        tagsLine(parsed) + `\n\n` +
         `Responde *sí* para guardar o *no* para cancelar`
       );
     }
